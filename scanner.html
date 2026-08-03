@@ -3,89 +3,177 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FFFFFF">
 <title>MICROIP 名片掃描寄信</title>
 <style>
   :root{
-    --navy:#0E1A2B; --navy-2:#16263C;
-    --gold:#F2A81D; --gold-dim:#B87F14;
-    --ink:#EAF0F7; --ink-dim:#8FA3BC; --ok:#3DBF87; --bad:#E4614C; --line:#26374F;
+    --paper:#FFFFFF;
+    --wash:#F7F8FA;
+    --ink:#111519;
+    --mute:#6C757E;
+    --faint:#9AA2AA;
+    --line:#E2E6EA;
+    --orange:#F08A00;
+    --orange-deep:#C96C00;
+    --orange-wash:#FFF4E5;
+    --ok:#1B8A5A;
+    --bad:#C2381F;
+    --mono:ui-monospace,SFMono-Regular,Menlo,"Roboto Mono",monospace;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  body{margin:0;padding:16px 14px 40px;background:var(--navy);color:var(--ink);
+  html{background:var(--wash)}
+  body{
+    margin:0;padding:0 0 48px;background:var(--wash);color:var(--ink);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif;
-    font-size:16px;line-height:1.55}
-  .wrap{max-width:540px;margin:0 auto}
-  header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px}
-  h1{font-size:18px;margin:0}
-  .linkbtn{background:none;border:0;color:var(--gold);font-size:13px;padding:4px;width:auto;
-    font-family:inherit;cursor:pointer;text-decoration:underline;margin:0}
-  .card{border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px;background:var(--navy-2)}
-  .card h2{font-size:12px;margin:0 0 10px;color:var(--gold);letter-spacing:.08em;
-    text-transform:uppercase;font-weight:600}
-  .hint{font-size:12.5px;color:var(--ink-dim);margin:8px 0 0}
-  label.fld{display:block;font-size:12px;color:var(--ink-dim);margin:10px 0 4px}
+    font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:560px;margin:0 auto;padding:0 14px}
+
+  /* 頁首 */
+  header{
+    position:sticky;top:0;z-index:20;background:var(--paper);
+    border-bottom:1px solid var(--line);margin:0 -14px 18px;padding:14px;
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .brand{display:flex;align-items:center;gap:9px;min-width:0}
+  .mark{
+    width:22px;height:22px;flex:0 0 auto;border-radius:3px;
+    background:
+      linear-gradient(135deg,var(--orange) 0%,#FFB629 100%);
+    position:relative;
+  }
+  .mark::after{
+    content:"";position:absolute;inset:5px 5px auto auto;width:6px;height:6px;
+    background:var(--paper);border-radius:1px;
+  }
+  .brand b{font-size:15px;letter-spacing:.06em;font-weight:700}
+  .brand span{font-size:11px;color:var(--faint);letter-spacing:.14em;text-transform:uppercase;
+    font-family:var(--mono);display:block;line-height:1.2}
+  .linkbtn{
+    background:none;border:0;color:var(--orange-deep);font-size:13px;padding:6px 2px;width:auto;
+    font-family:inherit;cursor:pointer;margin:0;font-weight:600;
+  }
+
+  /* 步驟卡：左側軌道 */
+  .card{
+    position:relative;background:var(--paper);border:1px solid var(--line);
+    border-radius:2px;padding:16px 16px 16px 52px;margin-bottom:10px;
+  }
+  .card::before{   /* 軌道線 */
+    content:"";position:absolute;left:25px;top:0;bottom:-10px;width:1px;background:var(--line);
+  }
+  .card:last-of-type::before{bottom:auto;height:22px}
+  .card > .num{
+    position:absolute;left:14px;top:14px;width:23px;height:23px;border-radius:50%;
+    background:var(--paper);border:1px solid var(--line);color:var(--faint);
+    font-family:var(--mono);font-size:11px;font-weight:600;
+    display:flex;align-items:center;justify-content:center;z-index:1;
+  }
+  .card.done > .num{background:var(--orange);border-color:var(--orange);color:#fff}
+  .card.done{border-left:1px solid var(--line)}
+  .card h2{
+    font-size:11px;margin:2px 0 12px;color:var(--mute);letter-spacing:.14em;
+    text-transform:uppercase;font-weight:700;font-family:var(--mono);
+  }
+  .card.done h2{color:var(--orange-deep)}
+
+  .plain{padding:16px;border-radius:2px}
+  .plain::before{display:none}
+
+  .hint{font-size:12.5px;color:var(--mute);margin:8px 0 0;line-height:1.5}
+  label.fld{display:block;font-size:11px;color:var(--mute);margin:12px 0 4px;
+    letter-spacing:.08em;text-transform:uppercase;font-family:var(--mono)}
   input[type=text],input[type=email],input[type=tel],textarea{
-    width:100%;padding:11px 12px;border-radius:8px;border:1px solid var(--line);
-    background:#0B1523;color:var(--ink);font-size:16px;font-family:inherit}
+    width:100%;padding:11px 12px;border-radius:2px;border:1px solid var(--line);
+    background:var(--paper);color:var(--ink);font-size:16px;font-family:inherit}
+  input:focus,textarea:focus{outline:0;border-color:var(--orange);box-shadow:0 0 0 3px var(--orange-wash)}
   textarea{min-height:56px;resize:vertical}
-  button{width:100%;padding:14px;border:0;border-radius:10px;font-size:16px;font-weight:600;
-    font-family:inherit;background:var(--gold);color:#1A1200;margin-top:10px;cursor:pointer}
-  button:disabled{background:#3A4B63;color:#7A8CA5}
-  button.ghost{background:transparent;border:1px solid var(--gold-dim);color:var(--gold)}
-  button.sm{padding:10px;font-size:14px}
-  button:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:2px}
+
+  button{
+    width:100%;padding:14px;border:0;border-radius:2px;font-size:15px;font-weight:700;
+    font-family:inherit;background:var(--orange);color:#fff;margin-top:10px;cursor:pointer;
+    letter-spacing:.02em;
+  }
+  button:active{background:var(--orange-deep)}
+  button:disabled{background:var(--wash);color:var(--faint);border:1px solid var(--line)}
+  button.ghost{background:var(--paper);border:1px solid var(--line);color:var(--ink)}
+  button.ghost:active{background:var(--wash)}
+  button.sm{padding:10px;font-size:13px}
+  button:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
   input[type=file]{display:none}
-  .filebtn{display:block;width:100%;padding:14px;border-radius:10px;background:var(--gold);
-    color:#1A1200;font-weight:600;text-align:center;font-size:16px}
-  .filebtn.alt{background:transparent;border:1px solid var(--gold-dim);color:var(--gold)}
-  .thumb{display:none;width:100%;max-height:190px;object-fit:contain;border-radius:8px;
-    margin-top:10px;border:1px solid var(--line);background:#0B1523}
-  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
-  .chip{padding:6px 10px;border-radius:99px;border:1px solid var(--line);background:#0B1523;
-    color:var(--ink-dim);font-size:13px;cursor:pointer;width:auto;margin:0;font-weight:400}
-  .prod{display:flex;align-items:flex-start;gap:10px;padding:10px;border:1px solid var(--line);
-    border-radius:10px;margin-bottom:8px;background:#0B1523;cursor:pointer}
-  .prod.on{border-color:var(--gold);background:#1D1A0D}
-  .prod input{margin:3px 0 0;width:20px;height:20px;flex:0 0 auto;accent-color:var(--gold)}
-  .prod .nm{font-weight:600;font-size:15px}
-  .prod .ds{font-size:12px;color:var(--ink-dim);line-height:1.4}
-  .spin{display:none;margin-top:10px;font-size:13px;color:var(--gold)}
-  .status{font-size:12.5px;color:var(--ink-dim);margin-top:8px;min-height:18px}
-  .warn{background:#2A1410;border:1px solid #6B2E22;color:#F0C4BB;border-radius:8px;
-    padding:10px;font-size:13px;margin-top:8px;display:none}
-  .seg{display:flex;gap:6px;margin-top:6px}
-  .seg button{flex:1;margin:0;padding:9px;font-size:14px;background:#0B1523;color:var(--ink-dim);
-    border:1px solid var(--line)}
-  .seg button.on{background:var(--gold);color:#1A1200;border-color:var(--gold)}
-  .preview{background:#fff;color:#222;border-radius:10px;padding:12px;font-size:13px;
-    max-height:260px;overflow:auto}
-  .preview img{max-width:100%;border-radius:6px}
+  .filebtn{display:block;width:100%;padding:14px;border-radius:2px;background:var(--orange);
+    color:#fff;font-weight:700;text-align:center;font-size:15px}
+  .filebtn.alt{background:var(--paper);border:1px solid var(--line);color:var(--ink)}
+  .thumb{display:none;width:100%;max-height:190px;object-fit:contain;border-radius:2px;
+    margin-top:10px;border:1px solid var(--line);background:var(--wash)}
+
+  .chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+  .chip{padding:5px 9px;border-radius:2px;border:1px solid var(--line);background:var(--paper);
+    color:var(--mute);font-size:13px;cursor:pointer;width:auto;margin:0;font-weight:400}
+  .chip:active{background:var(--orange-wash);border-color:var(--orange);color:var(--orange-deep)}
+
+  .prod{display:flex;align-items:flex-start;gap:11px;padding:11px;border:1px solid var(--line);
+    border-radius:2px;margin-bottom:6px;background:var(--paper);cursor:pointer}
+  .prod.on{border-color:var(--orange);background:var(--orange-wash)}
+  .prod input{margin:2px 0 0;width:19px;height:19px;flex:0 0 auto;accent-color:var(--orange)}
+  .prod .nm{font-weight:700;font-size:14.5px}
+  .prod .ds{font-size:12px;color:var(--mute);line-height:1.4}
+
+  .spin{display:none;margin-top:12px;font-size:12.5px;color:var(--orange-deep);
+    font-family:var(--mono);letter-spacing:.05em}
+  .spin::after{content:"";display:inline-block;width:5px;height:5px;margin-left:6px;
+    border-radius:50%;background:var(--orange);animation:pulse 1s infinite}
+  @keyframes pulse{0%,100%{opacity:.25}50%{opacity:1}}
+  @media (prefers-reduced-motion:reduce){.spin::after{animation:none;opacity:1}}
+
+  .status{font-size:12.5px;color:var(--mute);margin-top:8px;min-height:16px;line-height:1.5}
+  .warn{background:#FFF3F0;border:1px solid #F0C4BB;color:#8A2C18;border-radius:2px;
+    padding:10px;font-size:12.5px;margin-top:8px;display:none;line-height:1.5}
+
+  .seg{display:flex;gap:0;margin-top:8px;border:1px solid var(--line);border-radius:2px;overflow:hidden}
+  .seg button{flex:1;margin:0;padding:10px;font-size:14px;background:var(--paper);color:var(--mute);
+    border:0;border-right:1px solid var(--line);font-weight:600}
+  .seg button:last-child{border-right:0}
+  .seg button.on{background:var(--orange);color:#fff}
+
+  .preview{background:var(--paper);color:#222;border:1px solid var(--line);border-radius:2px;
+    padding:12px;font-size:13px;max-height:260px;overflow:auto}
+  .preview img{max-width:100%;border-radius:2px}
   .preview a{color:#1155CC}
-  ol.steps{margin:10px 0 0;padding-left:20px;font-size:13px;color:var(--ink-dim)}
-  ol.steps li{margin-bottom:4px}
+
+  ol.steps{margin:12px 0 0;padding-left:18px;font-size:12.5px;color:var(--mute);line-height:1.6}
+  ol.steps li{margin-bottom:3px}
   .hide{display:none}
-  .ok{color:var(--ok)} .bad{color:var(--bad)}
-  a.doc{color:var(--gold);font-size:12.5px}
+  .ok{color:var(--ok);font-weight:600} .bad{color:var(--bad);font-weight:600}
+  a.doc{color:var(--orange-deep);font-weight:600}
+  .rule{height:1px;background:var(--line);margin:18px 0}
 </style>
 </head>
 <body>
 <div class="wrap">
 
 <header>
-  <h1>名片掃描寄信</h1>
+  <div class="brand">
+    <div class="mark" aria-hidden="true"></div>
+    <div>
+      <b>名片掃描寄信</b>
+      <span>MICROIP Lead Capture</span>
+    </div>
+  </div>
   <button class="linkbtn" id="toSettings">設定</button>
 </header>
 
 <!-- ============ 設定 ============ -->
 <div id="settings" class="hide">
-  <div class="card">
+  <div class="card plain">
     <h2>辨識服務金鑰</h2>
     <label class="fld" for="sKey">OCR.space API Key</label>
     <input type="text" id="sKey" placeholder="向公司索取，或自行申請">
-    <p class="hint">免費申請：<a class="doc" href="https://ocr.space/ocrapi/freekey" target="_blank" rel="noopener">ocr.space/ocrapi/freekey</a>　金鑰只存在這支手機，不會上傳到任何地方。</p>
+    <p class="hint">免費申請：<a class="doc" href="https://ocr.space/ocrapi/freekey" target="_blank" rel="noopener">ocr.space/ocrapi/freekey</a>　金鑰只存在這支手機。</p>
   </div>
-  <div class="card">
-    <h2>我的資料（只需填一次）</h2>
+  <div class="card plain">
+    <h2>我的資料</h2>
     <label class="fld" for="sName">姓名</label>
     <input type="text" id="sName" placeholder="Hana Zhang">
     <label class="fld" for="sTitle">職稱</label>
@@ -107,24 +195,24 @@
 <!-- ============ 主流程 ============ -->
 <div id="main">
 
-  <div class="card">
-    <h2>1　拍名片</h2>
+  <div class="card" id="step1"><span class="num">1</span>
+    <h2>拍名片</h2>
     <label class="filebtn" for="cardPic">拍攝名片</label>
     <input type="file" id="cardPic" accept="image/*" capture="environment">
     <canvas id="cardCanvas" class="thumb"></canvas>
     <div id="ocrRow" class="hide">
-      <div class="seg" style="margin-top:10px">
+      <div class="seg">
         <button type="button" id="mLatin" class="on">英文／歐語</button>
         <button type="button" id="mChi">中文名片</button>
       </div>
       <button class="ghost sm" id="btnRescan">重新辨識</button>
     </div>
-    <div class="spin" id="ocrSpin">辨識中…</div>
+    <div class="spin" id="ocrSpin">辨識中</div>
     <div class="status" id="ocrStatus"></div>
   </div>
 
-  <div class="card">
-    <h2>2　確認客戶資料</h2>
+  <div class="card" id="step2"><span class="num">2</span>
+    <h2>確認客戶資料</h2>
     <label class="fld" for="fName">姓名</label>
     <input type="text" id="fName" placeholder="客戶姓名">
     <div class="chips" id="chipsName"></div>
@@ -150,22 +238,22 @@
     <textarea id="fNote" placeholder="例：想找 DMS 方案，年底評估"></textarea>
   </div>
 
-  <div class="card">
-    <h2>3　信件語言</h2>
+  <div class="card done" id="step3"><span class="num">3</span>
+    <h2>信件語言</h2>
     <div class="seg">
       <button class="on" data-lang="en">English</button>
       <button data-lang="zh">中文</button>
     </div>
   </div>
 
-  <div class="card">
-    <h2>4　客戶有興趣的產品</h2>
+  <div class="card" id="step4"><span class="num">4</span>
+    <h2>客戶有興趣的產品</h2>
     <div id="prodList"></div>
     <div class="warn" id="uavWarn">已勾選 UAV × Edge AI。這條產品線涉及敏感應用，請確認已了解對方身分與用途再寄出。</div>
   </div>
 
-  <div class="card">
-    <h2>5　合照</h2>
+  <div class="card" id="step5"><span class="num">5</span>
+    <h2>合照</h2>
     <label class="filebtn alt" for="photoPic">選擇合照</label>
     <input type="file" id="photoPic" accept="image/*">
     <img id="photoThumb" class="thumb" alt="合照預覽">
@@ -173,13 +261,13 @@
     <p class="hint">請確認照片拍到完整的臉。拍照前務必先取得對方同意。</p>
   </div>
 
-  <div class="card">
-    <h2>6　預覽（客戶會看到的樣子）</h2>
+  <div class="card" id="step6"><span class="num">6</span>
+    <h2>預覽</h2>
     <div class="preview" id="preview">請先完成上方步驟。</div>
   </div>
 
-  <div class="card">
-    <h2>7　送出</h2>
+  <div class="card" id="step7"><span class="num">7</span>
+    <h2>送出</h2>
     <button id="btnCopy" disabled>① 複製內文</button>
     <div class="status" id="copyStatus"></div>
     <button class="ghost" id="btnOpen" disabled>② 開啟 Outlook</button>
@@ -189,6 +277,7 @@
       <li>在<b>內文區域</b>長按 → 貼上</li>
       <li>檢查一次 → 送出</li>
     </ol>
+    <div class="rule"></div>
     <button class="ghost sm" id="btnReset">清空，換下一位客戶</button>
   </div>
 
@@ -304,8 +393,7 @@ $("cardPic").addEventListener("change", function(e){
     im.onload = function(){
       cardImg = im;
       $("ocrRow").classList.remove("hide");
-      drawCard();
-      runOCR();
+      drawCard(); render(); runOCR();
     };
     im.onerror = function(){ $("ocrStatus").innerHTML = '<span class="bad">照片讀取失敗</span>'; };
     im.src = ev.target.result;
@@ -326,15 +414,11 @@ function drawCard(){
   return cv;
 }
 
-/* 壓到 API 的 1MB 限制以內 */
 function cardBase64(){
   var cv = drawCard();
   if(!cv) return null;
   var q = 0.8, uri = cv.toDataURL("image/jpeg", q);
-  while(uri.length > 950000 && q > 0.3){
-    q -= 0.12;
-    uri = cv.toDataURL("image/jpeg", q);
-  }
+  while(uri.length > 950000 && q > 0.3){ q -= 0.12; uri = cv.toDataURL("image/jpeg", q); }
   return uri;
 }
 
@@ -350,10 +434,7 @@ function runOCR(){
   var st = $("ocrStatus"), spin = $("ocrSpin");
   if(!cardImg) return;
   var key = apiKey();
-  if(!key){
-    st.innerHTML = '<span class="bad">尚未設定辨識金鑰，請到右上角「設定」填入</span>';
-    return;
-  }
+  if(!key){ st.innerHTML = '<span class="bad">尚未設定辨識金鑰，請點右上角「設定」</span>'; return; }
   var b64 = cardBase64();
   if(!b64){ st.innerHTML = '<span class="bad">影像處理失敗</span>'; return; }
 
@@ -363,16 +444,10 @@ function runOCR(){
   fd.append("scale", "true");
   fd.append("detectOrientation", "true");
   fd.append("isOverlayRequired", "false");
-  if(ocrMode === "chi"){
-    fd.append("language", "cht");
-    fd.append("OCREngine", "1");
-  } else {
-    fd.append("language", "auto");
-    fd.append("OCREngine", "2");
-  }
+  if(ocrMode === "chi"){ fd.append("language","cht"); fd.append("OCREngine","1"); }
+  else { fd.append("language","auto"); fd.append("OCREngine","2"); }
 
-  spin.style.display = "block";
-  st.textContent = "";
+  spin.style.display = "block"; st.textContent = "";
 
   fetch(OCR_API, { method:"POST", body: fd })
     .then(function(r){ return r.json(); })
@@ -380,15 +455,14 @@ function runOCR(){
       spin.style.display = "none";
       if(d.IsErroredOnProcessing){
         var msg = (d.ErrorMessage && d.ErrorMessage.join ? d.ErrorMessage.join("；") : d.ErrorMessage) || "未知錯誤";
-        st.innerHTML = '<span class="bad">辨識失敗：'+esc(msg)+'</span>';
-        return;
+        st.innerHTML = '<span class="bad">辨識失敗：'+esc(msg)+'</span>'; return;
       }
       var text = (d.ParsedResults && d.ParsedResults[0] && d.ParsedResults[0].ParsedText) || "";
       applyOCR(text);
     })
     .catch(function(err){
       spin.style.display = "none";
-      st.innerHTML = '<span class="bad">連線失敗：'+esc(err && err.message ? err.message : err)+'　請確認網路後按「重新辨識」</span>';
+      st.innerHTML = '<span class="bad">連線失敗：'+esc(err && err.message ? err.message : err)+'</span>　請確認網路後按「重新辨識」';
     });
 }
 
@@ -396,22 +470,20 @@ function applyOCR(text){
   var st = $("ocrStatus");
   ocrLines = text.split(/\r?\n/).map(function(s){ return s.replace(/\s+/g," ").trim(); })
                  .filter(function(s){ return s.length > 1 && s.length < 60; });
-
   var email = (text.match(/[A-Za-z0-9._%+\-]+\s*@\s*[A-Za-z0-9.\-]+\.[A-Za-z]{2,}/) || [""])[0];
   var phone = (text.match(/(\+?\d[\d\s\-().]{7,}\d)/) || [""])[0];
   if(email && !$("fEmail").value) $("fEmail").value = email.replace(/\s/g,"").replace(/[,;]$/,"");
   if(phone && !$("fPhone").value) $("fPhone").value = phone.trim();
-
   buildChips();
   var found = [];
   if(email) found.push("Email");
   if(phone) found.push("電話");
   if(found.length){
-    st.innerHTML = '<span class="ok">已自動填入：'+found.join("、")+'。姓名／公司／職稱請點下方文字方塊。</span>';
+    st.innerHTML = '<span class="ok">已填入 '+found.join("、")+'</span>　姓名／公司／職稱請點下方文字方塊';
   } else if(ocrLines.length){
-    st.innerHTML = '辨識到文字但沒抓到 Email。若是中文名片，請切換到「中文名片」後按重新辨識。';
+    st.innerHTML = '辨識到文字但沒抓到 Email。若是中文名片，切換到「中文名片」後按重新辨識。';
   } else {
-    st.innerHTML = '<span class="bad">沒辨識到文字。請拍滿整張名片、避免反光與陰影。</span>';
+    st.innerHTML = '<span class="bad">沒辨識到文字</span>　請拍滿整張名片、避免反光與陰影';
   }
   render();
 }
@@ -446,7 +518,7 @@ $("photoPic").addEventListener("change", function(e){
       cv.width = w; cv.height = h;
       cv.getContext("2d").drawImage(im, 0, 0, w, h);
       photoData = cv.toDataURL("image/jpeg", 0.75);
-      $("photoStatus").innerHTML = '<span class="ok">照片已備妥（'+Math.round(photoData.length/1024)+' KB）</span>';
+      $("photoStatus").innerHTML = '<span class="ok">照片已備妥</span>　'+Math.round(photoData.length/1024)+' KB';
       render();
     };
     im.onerror = function(){ $("photoStatus").innerHTML = '<span class="bad">照片讀取失敗，請換一張</span>'; };
@@ -466,9 +538,8 @@ Array.prototype.forEach.call(document.querySelectorAll(".seg button[data-lang]")
 /* ---------- 組信 ---------- */
 function subject(){
   var show = store("mi_sShow") || (lang === "en" ? "the show" : "展會");
-  return lang === "en"
-    ? "MICROIP - Nice meeting you at " + show
-    : "MICROIP - 很高興在 " + show + " 與您交流";
+  return lang === "en" ? "MICROIP - Nice meeting you at " + show
+                       : "MICROIP - 很高興在 " + show + " 與您交流";
 }
 function me(){
   return { n: store("mi_sName")||"", t: store("mi_sTitle")||"", d: store("mi_sDept")||"",
@@ -476,20 +547,16 @@ function me(){
 }
 
 function bodyHtml(){
-  var name = $("fName").value.trim();
-  var prods = selectedProducts();
-  var m = me();
-  var H = [];
+  var name = $("fName").value.trim(), prods = selectedProducts(), m = me(), H = [];
   H.push('<div style="font-family:-apple-system,\'Segoe UI\',\'Noto Sans TC\',sans-serif;font-size:15px;line-height:1.6;color:#222">');
-  if(photoData) H.push('<img src="'+photoData+'" width="360" style="max-width:100%;border-radius:6px"><br><br>');
+  if(photoData) H.push('<img src="'+photoData+'" width="360" style="max-width:100%;border-radius:4px"><br><br>');
   if(lang === "en"){
     H.push('<div>Hi '+esc(name||"there")+',</div><br>');
     H.push('<div>It was a pleasure meeting you today at our booth.</div><br>');
     if(prods.length){
       H.push('<div>As discussed, here is more information on the areas we covered:</div><br>');
       prods.forEach(function(p){
-        H.push('<div><b>'+esc(p.nm)+'</b></div>');
-        H.push('<div>'+esc(p.en)+'</div>');
+        H.push('<div><b>'+esc(p.nm)+'</b></div><div>'+esc(p.en)+'</div>');
         H.push('<div><a href="'+p.url+'">'+p.url+'</a></div>');
         if(p.extraUrl) H.push('<div><a href="'+p.extraUrl+'">'+esc(p.extraEn)+'</a></div>');
         H.push('<br>');
@@ -511,8 +578,7 @@ function bodyHtml(){
     if(prods.length){
       H.push('<div>以下是我們今天談到的部分，提供您參考：</div><br>');
       prods.forEach(function(p){
-        H.push('<div><b>【'+esc(p.nm)+'】</b></div>');
-        H.push('<div>'+esc(p.zh)+'</div>');
+        H.push('<div><b>【'+esc(p.nm)+'】</b></div><div>'+esc(p.zh)+'</div>');
         H.push('<div><a href="'+p.urlZh+'">'+p.urlZh+'</a></div>');
         if(p.extraUrl) H.push('<div><a href="'+p.extraUrl+'">'+esc(p.extraZh)+'</a></div>');
         H.push('<br>');
@@ -534,10 +600,7 @@ function bodyHtml(){
 }
 
 function bodyPlain(){
-  var name = $("fName").value.trim();
-  var prods = selectedProducts();
-  var m = me();
-  var L = [];
+  var name = $("fName").value.trim(), prods = selectedProducts(), m = me(), L = [];
   if(lang === "en"){
     L.push("Hi " + (name||"there") + ",", "", "It was a pleasure meeting you today at our booth.", "");
     if(prods.length){
@@ -564,11 +627,21 @@ function bodyPlain(){
   return L.join("\n");
 }
 
-/* ---------- 畫面狀態 ---------- */
+/* ---------- 狀態與軌道 ---------- */
+function setDone(id, ok){ $(id).classList.toggle("done", !!ok); }
+
 function render(){
   $("preview").innerHTML = bodyHtml();
   var hasEmail = !!$("fEmail").value.trim();
   var ready = hasEmail && !!photoData && settingsOK();
+
+  setDone("step1", !!cardImg);
+  setDone("step2", hasEmail);
+  setDone("step4", selectedProducts().length > 0);
+  setDone("step5", !!photoData);
+  setDone("step6", ready);
+  setDone("step7", ready);
+
   $("btnCopy").disabled = !ready;
   $("btnOpen").disabled = !hasEmail;
   if(!settingsOK()) $("btnCopy").textContent = "① 請先完成設定";
@@ -592,7 +665,7 @@ $("btnCopy").addEventListener("click", function(){
       "text/plain": new Blob([bodyPlain()], {type:"text/plain"})
     });
     navigator.clipboard.write([item]).then(function(){
-      st.innerHTML = '<span class="ok">複製成功，接著按 ②</span>';
+      st.innerHTML = '<span class="ok">複製成功</span>　接著按 ②';
     }).catch(function(err){
       st.innerHTML = '<span class="bad">複製失敗：'+esc(err&&err.message?err.message:err)+'</span>';
     });
@@ -601,7 +674,7 @@ $("btnCopy").addEventListener("click", function(){
   }
 });
 
-/* ---------- 開啟 Outlook ---------- */
+/* ---------- Outlook ---------- */
 $("btnOpen").addEventListener("click", function(){
   var to = $("fEmail").value.trim();
   if(!to) return;
