@@ -105,7 +105,19 @@
     <h2>1　拍名片</h2>
     <label class="filebtn" for="cardPic">拍攝名片</label>
     <input type="file" id="cardPic" accept="image/*" capture="environment">
-    <img id="cardThumb" class="thumb" alt="名片預覽">
+    <canvas id="cardCanvas" class="thumb"></canvas>
+    <div id="rotRow" class="hide">
+      <div class="seg" style="margin-top:10px">
+        <button type="button" id="rotL">↺ 左轉</button>
+        <button type="button" id="rotR">↻ 右轉</button>
+      </div>
+      <div class="seg" style="margin-top:6px">
+        <button type="button" id="ocrEng" class="on">英文</button>
+        <button type="button" id="ocrChi">英文＋繁中</button>
+      </div>
+      <button class="ghost sm" id="btnRescan">轉正後重新辨識</button>
+      <p class="hint">名片文字要是正的才辨識得到。繁中模型約 10MB，第一次載入較慢，建議先在 WiFi 環境載過一次。</p>
+    </div>
     <div class="bar" id="ocrBar"><i></i></div>
     <div class="status" id="ocrStatus"></div>
   </div>
@@ -280,40 +292,109 @@ function selectedProducts(){
   return PRODUCTS.filter(function(p){ return ids.indexOf(p.id) > -1; });
 }
 
-/* ---------- OCR ---------- */
+/* ---------- 名片：旋轉 + 前處理 + OCR ---------- */
+var cardImg = null, rotation = 0, ocrLangs = "eng";
+
 $("cardPic").addEventListener("change", function(e){
   var f = e.target.files && e.target.files[0];
   if(!f) return;
-  var img = $("cardThumb"); img.src = URL.createObjectURL(f); img.style.display = "block";
-  runOCR(f);
+  var reader = new FileReader();
+  reader.onload = function(ev){
+    var im = new Image();
+    im.onload = function(){
+      cardImg = im; rotation = 0;
+      $("rotRow").classList.remove("hide");
+      drawCard();
+      runOCR();
+    };
+    im.onerror = function(){ $("ocrStatus").innerHTML = '<span class="bad">照片讀取失敗</span>'; };
+    im.src = ev.target.result;
+  };
+  reader.readAsDataURL(f);
 });
 
-function runOCR(file){
+function drawCard(){
+  if(!cardImg) return null;
+  var max = 1400, w = cardImg.width, h = cardImg.height;
+  if(w > max || h > max){
+    if(w > h){ h = Math.round(h*max/w); w = max; } else { w = Math.round(w*max/h); h = max; }
+  }
+  var swap = (rotation === 90 || rotation === 270);
+  var cv = $("cardCanvas");
+  cv.width = swap ? h : w;
+  cv.height = swap ? w : h;
+  var ctx = cv.getContext("2d");
+  ctx.save();
+  ctx.translate(cv.width/2, cv.height/2);
+  ctx.rotate(rotation * Math.PI / 180);
+  ctx.drawImage(cardImg, -w/2, -h/2, w, h);
+  ctx.restore();
+  cv.style.display = "block";
+
+  /* 灰階 + 拉對比，提升辨識率 */
+  try{
+    var d = ctx.getImageData(0,0,cv.width,cv.height);
+    var p = d.data, i, g;
+    for(i=0;i<p.length;i+=4){
+      g = 0.299*p[i] + 0.587*p[i+1] + 0.114*p[i+2];
+      g = (g - 128) * 1.6 + 128;
+      g = g < 0 ? 0 : (g > 255 ? 255 : g);
+      p[i] = p[i+1] = p[i+2] = g;
+    }
+    ctx.putImageData(d, 0, 0);
+  }catch(err){ /* 少數情況取不到影像資料，略過前處理 */ }
+  return cv;
+}
+
+$("rotL").addEventListener("click", function(){ rotation = (rotation + 270) % 360; drawCard(); });
+$("rotR").addEventListener("click", function(){ rotation = (rotation + 90) % 360; drawCard(); });
+$("btnRescan").addEventListener("click", function(){ runOCR(); });
+
+$("ocrEng").addEventListener("click", function(){
+  ocrLangs = "eng"; $("ocrEng").classList.add("on"); $("ocrChi").classList.remove("on");
+});
+$("ocrChi").addEventListener("click", function(){
+  ocrLangs = "eng+chi_tra"; $("ocrChi").classList.add("on"); $("ocrEng").classList.remove("on");
+});
+
+function runOCR(){
   var bar = $("ocrBar"), fill = bar.querySelector("i"), st = $("ocrStatus");
+  if(!cardImg){ return; }
   if(typeof Tesseract === "undefined"){
     st.innerHTML = '<span class="bad">辨識元件載入失敗（可能是網路問題），請手動輸入欄位</span>';
     return;
   }
+  var cv = drawCard();
   bar.style.display = "block"; fill.style.width = "0%";
-  st.textContent = "辨識中，可以先勾選產品線…";
-  Tesseract.recognize(file, "eng", {
-    logger: function(m){ if(m.status === "recognizing text"){ fill.style.width = Math.round(m.progress*100)+"%"; } }
+  st.textContent = ocrLangs.indexOf("chi") > -1
+    ? "首次使用繁中模型需下載約 10MB，請稍候…"
+    : "辨識中，可以先勾選產品線…";
+
+  Tesseract.recognize(cv, ocrLangs, {
+    logger: function(m){
+      if(m.status === "recognizing text"){ fill.style.width = Math.round(m.progress*100)+"%"; }
+      else if(m.status && m.status.indexOf("load") > -1){ st.textContent = "載入辨識模型中…"; }
+    }
   }).then(function(res){
     bar.style.display = "none";
     var text = (res && res.data && res.data.text) ? res.data.text : "";
-    ocrLines = text.split("\n").map(function(s){ return s.trim(); })
+    ocrLines = text.split("\n").map(function(s){ return s.replace(/\s+/g," ").trim(); })
                    .filter(function(s){ return s.length > 1 && s.length < 60; });
-    var email = (text.match(/[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}/) || [""])[0];
+    var email = (text.match(/[A-Za-z0-9._%+\-]+\s*@\s*[A-Za-z0-9.\-]+\.[A-Za-z]{2,}/) || [""])[0];
     var phone = (text.match(/(\+?\d[\d\s\-().]{7,}\d)/) || [""])[0];
-    if(email && !$("fEmail").value) $("fEmail").value = email.replace(/[,;]$/,"");
+    if(email && !$("fEmail").value) $("fEmail").value = email.replace(/\s/g,"").replace(/[,;]$/,"");
     if(phone && !$("fPhone").value) $("fPhone").value = phone.trim();
     buildChips();
     var found = [];
     if(email) found.push("Email");
     if(phone) found.push("電話");
-    st.innerHTML = found.length
-      ? '<span class="ok">已自動填入：'+found.join("、")+'。姓名／公司／職稱請點下方文字或自行輸入。</span>'
-      : '辨識完成，但沒抓到 Email，請點下方文字或手動輸入。';
+    if(found.length){
+      st.innerHTML = '<span class="ok">已自動填入：'+found.join("、")+'。姓名／公司／職稱請點下方文字或自行輸入。</span>';
+    } else if(ocrLines.length){
+      st.innerHTML = '沒抓到 Email。名片如果是橫躺的，請按左轉或右轉轉正後再按「重新辨識」。';
+    } else {
+      st.innerHTML = '<span class="bad">完全沒辨識到文字。請確認名片是正的、光線充足、拍滿整個畫面。</span>';
+    }
     render();
   }).catch(function(err){
     bar.style.display = "none";
@@ -553,8 +634,9 @@ $("btnReset").addEventListener("click", function(){
     cb.checked = false; cb.parentNode.classList.remove("on");
   });
   $("uavWarn").style.display = "none";
-  photoData = null; ocrLines = [];
-  $("cardThumb").style.display = "none"; $("photoThumb").style.display = "none";
+  photoData = null; ocrLines = []; cardImg = null; rotation = 0;
+  $("cardCanvas").style.display = "none"; $("rotRow").classList.add("hide");
+  $("photoThumb").style.display = "none";
   $("cardPic").value = ""; $("photoPic").value = "";
   ["chipsName","chipsCompany","chipsTitle"].forEach(function(id){ $(id).innerHTML = ""; });
   $("ocrStatus").textContent = ""; $("copyStatus").textContent = ""; $("photoStatus").textContent = "";
