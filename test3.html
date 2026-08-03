@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>連結測試｜MICROIP</title>
+<style>
+  :root{--navy:#0E1A2B;--navy-2:#16263C;--gold:#F2A81D;--gold-dim:#B87F14;
+    --ink:#EAF0F7;--ink-dim:#8FA3BC;--ok:#3DBF87;--bad:#E4614C;--line:#26374F}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;padding:20px 16px 60px;background:var(--navy);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif;
+    font-size:16px;line-height:1.55}
+  .wrap{max-width:520px;margin:0 auto}
+  h1{font-size:19px;margin:0 0 4px}
+  .sub{color:var(--ink-dim);font-size:13px;margin:0 0 22px}
+  .card{border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px;background:var(--navy-2)}
+  .card h2{font-size:12px;margin:0 0 10px;color:var(--gold);letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+  .hint{font-size:13px;color:var(--ink-dim);margin:10px 0 0}
+  button{width:100%;padding:14px;border:0;border-radius:10px;font-size:16px;font-weight:600;
+    font-family:inherit;background:var(--gold);color:#1A1200;margin-top:10px;cursor:pointer}
+  button:disabled{background:#3A4B63;color:#7A8CA5}
+  button.ghost{background:transparent;border:1px solid var(--gold-dim);color:var(--gold)}
+  button:focus-visible{outline:3px solid #fff;outline-offset:2px}
+  input[type=file]{display:none}
+  .filebtn{display:block;width:100%;padding:14px;border-radius:10px;background:var(--gold);
+    color:#1A1200;font-weight:600;text-align:center;font-size:16px}
+  .thumb{display:none;width:100%;max-height:170px;object-fit:contain;border-radius:8px;
+    margin-top:10px;border:1px solid var(--line)}
+  .log{font-family:ui-monospace,Menlo,monospace;font-size:12px;background:#08111C;
+    border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:12px;
+    white-space:pre-wrap;word-break:break-word;color:var(--ink-dim);min-height:40px}
+  ol{margin:8px 0 0;padding-left:20px;font-size:13.5px;color:var(--ink-dim)}
+  ol li{margin-bottom:4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>連結測試</h1>
+<p class="sub">目標：找出一種讓 Outlook 願意自動把網址變成可點連結的寫法。</p>
+
+<div class="card">
+  <h2>先選一張照片</h2>
+  <label class="filebtn" for="pic">拍照或從相簿選擇</label>
+  <input type="file" id="pic" accept="image/*">
+  <img id="preview" class="thumb" alt="照片預覽">
+</div>
+
+<div class="card">
+  <h2>測試一　五種寫法一次比較</h2>
+  <button id="btnFive" disabled>送出比較信到 Outlook</button>
+  <p class="hint">信裡會有五行網址，標號 1 到 5。送出後看<b>哪幾行變成藍色可點</b>，把編號告訴我就好。</p>
+</div>
+
+<div class="card">
+  <h2>測試二　備案：貼上格式化內文</h2>
+  <p class="hint">這是完全不同的做法，連結一定會保留，但多一個步驟。</p>
+  <ol>
+    <li>按下面第一顆按鈕，複製格式化內文</li>
+    <li>按第二顆按鈕，把照片分享到 Outlook</li>
+    <li>在 Outlook 內文區域<b>長按 → 貼上</b></li>
+    <li>看連結是不是藍色可點的</li>
+  </ol>
+  <button class="ghost" id="btnRich">① 複製格式化內文</button>
+  <button id="btnPhotoOnly" disabled>② 只把照片送到 Outlook</button>
+</div>
+
+<div class="card">
+  <h2>紀錄</h2>
+  <div class="log" id="log">尚未操作。</div>
+</div>
+
+</div>
+
+<script>
+(function(){
+"use strict";
+var U = "https://www.micro-ip.com/zh-TW/ai-solution-xedgai";
+var picFile = null;
+var logEl = document.getElementById('log'), lines = [];
+function log(m){ lines.push(new Date().toTimeString().slice(0,8)+"  "+m); logEl.textContent = lines.join("\n"); }
+
+document.getElementById('pic').addEventListener('change', function(e){
+  var f = e.target.files && e.target.files[0];
+  if(!f) return;
+  picFile = f;
+  var img = document.getElementById('preview');
+  img.src = URL.createObjectURL(f); img.style.display='block';
+  document.getElementById('btnFive').disabled = false;
+  document.getElementById('btnPhotoOnly').disabled = false;
+  log("已選擇照片");
+});
+
+/* 五種寫法 */
+var FIVE = [
+  "MICROIP - Link format test",
+  "",
+  "以下五行是同一個網址的五種寫法，請看哪幾行是藍色可點的：",
+  "",
+  "1. " + U,
+  "",
+  "2. " + U + " ",
+  "",
+  "3. <" + U + ">",
+  "",
+  "4. www.micro-ip.com/zh-TW/ai-solution-xedgai",
+  "",
+  "5. 連結：" + U + " （後面有中文字）",
+  "",
+  "測試結束。"
+].join("\n");
+
+document.getElementById('btnFive').addEventListener('click', function(){
+  var payload = { files:[picFile], text: FIVE };
+  if(navigator.canShare && !navigator.canShare(payload)){ log("裝置不支援"); return; }
+  navigator.share(payload).then(function(){ log("比較信已送出，請檢查五行的顏色"); })
+   .catch(function(err){ if(!err||err.name!=="AbortError") log("失敗："+(err&&err.message?err.message:err)); });
+});
+
+/* 格式化內文 */
+var HTML = '<div style="font-family:-apple-system,Segoe UI,sans-serif;font-size:15px;line-height:1.6">'
+  + '<p>Peter Wang 您好，</p>'
+  + '<p>很榮幸今日在展位上與您交流。</p>'
+  + '<p><b>【XEdgAI】</b><br>專為邊緣部署打造的全端 AI 平台，只需幾個步驟即可部署至異質邊緣裝置。<br>'
+  + '<a href="' + U + '">' + U + '</a></p>'
+  + '<p>若需要任何進一步資訊，歡迎隨時與我聯繫。</p>'
+  + '<p>Hana Zhang<br>擷發科技股份有限公司 MICROIP INC.</p>'
+  + '</div>';
+
+var PLAIN = "Peter Wang 您好，\n\n很榮幸今日在展位上與您交流。\n\n【XEdgAI】\n專為邊緣部署打造的全端 AI 平台。\n" + U + "\n\nHana Zhang\n擷發科技股份有限公司 MICROIP INC.";
+
+document.getElementById('btnRich').addEventListener('click', function(){
+  if(!window.ClipboardItem || !navigator.clipboard || !navigator.clipboard.write){
+    log("這台裝置不支援格式化複製，備案不可行");
+    return;
+  }
+  try{
+    var item = new ClipboardItem({
+      "text/html": new Blob([HTML], {type:"text/html"}),
+      "text/plain": new Blob([PLAIN], {type:"text/plain"})
+    });
+    navigator.clipboard.write([item]).then(function(){
+      log("已複製格式化內文，接著按第二顆按鈕");
+    }).catch(function(err){
+      log("複製失敗：" + (err && err.message ? err.message : err));
+    });
+  }catch(err){
+    log("複製失敗：" + (err && err.message ? err.message : err));
+  }
+});
+
+document.getElementById('btnPhotoOnly').addEventListener('click', function(){
+  var payload = { files:[picFile] };
+  if(navigator.canShare && !navigator.canShare(payload)){ log("裝置不支援只分享照片"); return; }
+  navigator.share(payload).then(function(){ log("照片已送出，請在 Outlook 內文長按貼上"); })
+   .catch(function(err){ if(!err||err.name!=="AbortError") log("失敗："+(err&&err.message?err.message:err)); });
+});
+})();
+</script>
+</body>
+</html>
