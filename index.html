@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Outlook 交接測試｜MICROIP</title>
+<style>
+  :root{
+    --navy:#0E1A2B;
+    --navy-2:#16263C;
+    --gold:#F2A81D;
+    --gold-dim:#B87F14;
+    --ink:#EAF0F7;
+    --ink-dim:#8FA3BC;
+    --ok:#3DBF87;
+    --bad:#E4614C;
+    --line:#26374F;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{
+    margin:0;padding:20px 16px 60px;
+    background:var(--navy);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif;
+    font-size:16px;line-height:1.6;
+  }
+  .wrap{max-width:520px;margin:0 auto}
+  h1{font-size:20px;margin:0 0 4px;letter-spacing:.02em}
+  .sub{color:var(--ink-dim);font-size:13px;margin:0 0 24px}
+  .step{
+    border:1px solid var(--line);border-radius:12px;
+    padding:16px;margin-bottom:14px;background:var(--navy-2);
+  }
+  .step h2{
+    font-size:13px;margin:0 0 12px;color:var(--gold);
+    letter-spacing:.08em;text-transform:uppercase;font-weight:600;
+  }
+  .hint{font-size:13px;color:var(--ink-dim);margin:10px 0 0}
+  button{
+    width:100%;padding:15px;border:0;border-radius:10px;
+    font-size:16px;font-weight:600;font-family:inherit;
+    background:var(--gold);color:#1A1200;margin-top:8px;
+    cursor:pointer;
+  }
+  button:disabled{background:#3A4B63;color:#7A8CA5}
+  button.ghost{background:transparent;border:1px solid var(--gold-dim);color:var(--gold)}
+  button:focus-visible{outline:3px solid #fff;outline-offset:2px}
+  input[type=file]{display:none}
+  label.filebtn{
+    display:block;width:100%;padding:15px;border-radius:10px;
+    background:var(--gold);color:#1A1200;font-weight:600;
+    text-align:center;font-size:16px;
+  }
+  #preview{
+    display:none;width:100%;border-radius:10px;margin-top:12px;
+    border:1px solid var(--line);
+  }
+  .log{
+    font-family:ui-monospace,Menlo,monospace;font-size:12px;line-height:1.5;
+    background:#08111C;border:1px solid var(--line);border-radius:10px;
+    padding:12px;margin-top:14px;white-space:pre-wrap;word-break:break-word;
+    color:var(--ink-dim);min-height:60px;
+  }
+  .log b{color:var(--ok);font-weight:600}
+  .log i{color:var(--bad);font-style:normal;font-weight:600}
+  .badge{
+    display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;
+    border:1px solid var(--line);color:var(--ink-dim);margin-left:6px;vertical-align:middle;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Outlook 交接測試</h1>
+  <p class="sub">測試目的：確認 iPhone 能否把「照片＋內文」一次交給 Outlook。這一頁不會寄出任何信。</p>
+
+  <div class="step">
+    <h2>環境檢查</h2>
+    <div class="log" id="env">檢查中…</div>
+  </div>
+
+  <div class="step">
+    <h2>第一步　選一張照片</h2>
+    <label class="filebtn" for="pic">拍照或從相簿選擇</label>
+    <input type="file" id="pic" accept="image/*">
+    <img id="preview" alt="已選擇的照片預覽">
+    <p class="hint">測試階段隨便一張照片都可以。</p>
+  </div>
+
+  <div class="step">
+    <h2>第二步　複製收件人</h2>
+    <button class="ghost" id="btnCopy">複製測試信箱到剪貼簿</button>
+    <p class="hint" id="copyHint">收件人先放你自己的信箱，等一下在 Outlook 裡長按貼上。</p>
+  </div>
+
+  <div class="step">
+    <h2>第三步　送到 Outlook</h2>
+    <button id="btnShare" disabled>把照片和內文交給 Outlook</button>
+    <p class="hint">按下後會跳出分享選單，請選 <b>Outlook</b>。請留意三件事：<br>
+      ① 照片有沒有進去　② 內文有沒有進去　③ 內文是不是可讀的文字</p>
+    <button class="ghost" id="btnScheme" style="margin-top:14px">改用網址方式開 Outlook（比較用）</button>
+    <p class="hint">這個方式帶得動收件人和內文，但帶不了照片。兩個都試，我們才知道哪條路好走。</p>
+  </div>
+
+  <div class="step">
+    <h2>紀錄</h2>
+    <div class="log" id="log">尚未操作。</div>
+    <button class="ghost" id="btnLog" style="margin-top:12px">複製這段紀錄</button>
+    <p class="hint">測完把這段貼回對話給我。</p>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  var TEST_MAIL = "hana.zhang@micro-ip.com";
+  var SUBJECT = "MICROIP - Nice meeting you at the show";
+  var BODY = [
+    "Hi there,",
+    "",
+    "It was a pleasure meeting you today at the show.",
+    "",
+    "Here is a photo from our conversation, and the link to our solution page:",
+    "https://www.micro-ip.com/",
+    "",
+    "Best regards,",
+    "MICROIP INC."
+  ].join("\n");
+
+  var picFile = null;
+  var logEl = document.getElementById('log');
+  var lines = [];
+
+  function log(msg, ok){
+    var t = new Date().toTimeString().slice(0,8);
+    lines.push(t + "  " + msg);
+    logEl.innerHTML = lines.map(function(l){
+      if(l.indexOf("OK ")>-1) return "<b>"+l+"</b>";
+      if(l.indexOf("失敗")>-1||l.indexOf("不支援")>-1) return "<i>"+l+"</i>";
+      return l;
+    }).join("\n");
+  }
+
+  // 環境檢查
+  var env = [];
+  env.push("網址協定：" + location.protocol);
+  env.push("navigator.share：" + (navigator.share ? "有" : "沒有"));
+  env.push("navigator.canShare：" + (navigator.canShare ? "有" : "沒有"));
+  env.push("剪貼簿 API：" + (navigator.clipboard ? "有" : "沒有"));
+  env.push("瀏覽器：" + navigator.userAgent.slice(0,90));
+  document.getElementById('env').textContent = env.join("\n");
+
+  // 選照片
+  document.getElementById('pic').addEventListener('change', function(e){
+    var f = e.target.files && e.target.files[0];
+    if(!f){ return; }
+    picFile = f;
+    var img = document.getElementById('preview');
+    img.src = URL.createObjectURL(f);
+    img.style.display = 'block';
+    document.getElementById('btnShare').disabled = false;
+    log("OK 已選擇照片：" + f.name + "（" + Math.round(f.size/1024) + " KB，" + f.type + "）");
+  });
+
+  // 複製收件人
+  document.getElementById('btnCopy').addEventListener('click', function(){
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(TEST_MAIL).then(function(){
+        log("OK 已複製收件人：" + TEST_MAIL);
+        document.getElementById('copyHint').textContent = "已複製 " + TEST_MAIL + "，可以到 Outlook 長按貼上。";
+      }).catch(function(err){
+        log("複製失敗：" + err.message);
+      });
+    } else {
+      log("複製失敗：這個瀏覽器不支援剪貼簿 API");
+    }
+  });
+
+  // 分享表單
+  document.getElementById('btnShare').addEventListener('click', function(){
+    if(!navigator.share){ log("分享失敗：不支援 navigator.share"); return; }
+    if(!picFile){ log("分享失敗：還沒選照片"); return; }
+
+    var payload = { files:[picFile], title: SUBJECT, text: BODY };
+
+    if(navigator.canShare && !navigator.canShare(payload)){
+      log("這台裝置不支援「照片＋文字」一起分享，改成只分享照片再試一次");
+      payload = { files:[picFile] };
+      if(navigator.canShare && !navigator.canShare(payload)){
+        log("分享失敗：連只分享照片都不支援");
+        return;
+      }
+    }
+
+    navigator.share(payload).then(function(){
+      log("OK 分享選單已完成，請確認 Outlook 裡的內容");
+    }).catch(function(err){
+      if(err && err.name === 'AbortError'){
+        log("你取消了分享（這不算失敗）");
+      } else {
+        log("分享失敗：" + (err && err.message ? err.message : err));
+      }
+    });
+  });
+
+  // 網址方式
+  document.getElementById('btnScheme').addEventListener('click', function(){
+    var url = "ms-outlook://compose?to=" + encodeURIComponent(TEST_MAIL)
+            + "&subject=" + encodeURIComponent(SUBJECT)
+            + "&body=" + encodeURIComponent(BODY);
+    log("嘗試用網址開啟 Outlook（若沒反應請記下來）");
+    window.location.href = url;
+  });
+
+  // 複製紀錄
+  document.getElementById('btnLog').addEventListener('click', function(){
+    var txt = env.join("\n") + "\n----\n" + lines.join("\n");
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(function(){
+        log("OK 紀錄已複製，可以貼回對話");
+      });
+    }
+  });
+})();
+</script>
+</body>
+</html>
