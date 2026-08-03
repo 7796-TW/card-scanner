@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>整合測試｜MICROIP</title>
+<style>
+  :root{--navy:#0E1A2B;--navy-2:#16263C;--gold:#F2A81D;--gold-dim:#B87F14;
+    --ink:#EAF0F7;--ink-dim:#8FA3BC;--ok:#3DBF87;--bad:#E4614C;--line:#26374F}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;padding:20px 16px 60px;background:var(--navy);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif;
+    font-size:16px;line-height:1.55}
+  .wrap{max-width:520px;margin:0 auto}
+  h1{font-size:19px;margin:0 0 4px}
+  .sub{color:var(--ink-dim);font-size:13px;margin:0 0 22px}
+  .card{border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px;background:var(--navy-2)}
+  .card h2{font-size:12px;margin:0 0 10px;color:var(--gold);letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+  .hint{font-size:13px;color:var(--ink-dim);margin:10px 0 0}
+  button{width:100%;padding:14px;border:0;border-radius:10px;font-size:16px;font-weight:600;
+    font-family:inherit;background:var(--gold);color:#1A1200;margin-top:10px;cursor:pointer}
+  button:disabled{background:#3A4B63;color:#7A8CA5}
+  button.ghost{background:transparent;border:1px solid var(--gold-dim);color:var(--gold)}
+  button:focus-visible{outline:3px solid #fff;outline-offset:2px}
+  input[type=file]{display:none}
+  .filebtn{display:block;width:100%;padding:14px;border-radius:10px;background:var(--gold);
+    color:#1A1200;font-weight:600;text-align:center;font-size:16px}
+  .thumb{display:none;width:100%;max-height:170px;object-fit:contain;border-radius:8px;
+    margin-top:10px;border:1px solid var(--line)}
+  .log{font-family:ui-monospace,Menlo,monospace;font-size:12px;background:#08111C;
+    border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:12px;
+    white-space:pre-wrap;word-break:break-word;color:var(--ink-dim);min-height:40px}
+  ol{margin:8px 0 0;padding-left:20px;font-size:13.5px;color:var(--ink-dim)}
+  ol li{margin-bottom:5px}
+  .ok{color:var(--ok)} .bad{color:var(--bad)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>整合測試</h1>
+<p class="sub">目標：一次貼上就把照片、內文、可點連結全部帶進 Outlook，收件人和主旨自動填好。</p>
+
+<div class="card">
+  <h2>先選一張照片</h2>
+  <label class="filebtn" for="pic">拍照或從相簿選擇</label>
+  <input type="file" id="pic" accept="image/*">
+  <img id="preview" class="thumb" alt="照片預覽">
+  <div class="log" id="picInfo">尚未選擇。</div>
+</div>
+
+<div class="card">
+  <h2>依序按這兩顆</h2>
+  <button id="btnCopy" disabled>① 複製內文（含照片）</button>
+  <button class="ghost" id="btnOpen" disabled>② 開啟 Outlook</button>
+  <ol>
+    <li>按 ①，等它顯示複製成功</li>
+    <li>按 ②，Outlook 會開啟新信</li>
+    <li>在<b>內文區域</b>長按 → 貼上</li>
+    <li>檢查四件事：照片、收件人、主旨、連結是不是藍色</li>
+  </ol>
+</div>
+
+<div class="card">
+  <h2>紀錄</h2>
+  <div class="log" id="log">尚未操作。</div>
+</div>
+
+</div>
+
+<script>
+(function(){
+"use strict";
+
+var TO = "hana.zhang@micro-ip.com";
+var SUBJ = "MICROIP - 很高興在 electronica 2026 與您交流";
+var U = "https://www.micro-ip.com/zh-TW/ai-solution-xedgai";
+
+var dataUri = null;
+var logEl = document.getElementById('log'), lines = [];
+function log(m){ lines.push(new Date().toTimeString().slice(0,8)+"  "+m); logEl.innerHTML = lines.join("\n"); }
+
+/* 選照片後縮圖轉成內嵌格式 */
+document.getElementById('pic').addEventListener('change', function(e){
+  var f = e.target.files && e.target.files[0];
+  if(!f) return;
+  var img = document.getElementById('preview');
+  img.src = URL.createObjectURL(f); img.style.display = 'block';
+  document.getElementById('picInfo').textContent = "原始檔：" + Math.round(f.size/1024) + " KB，處理中…";
+
+  var reader = new FileReader();
+  reader.onload = function(ev){
+    var im = new Image();
+    im.onload = function(){
+      var max = 900;
+      var w = im.width, h = im.height;
+      if(w > max || h > max){
+        if(w > h){ h = Math.round(h * max / w); w = max; }
+        else { w = Math.round(w * max / h); h = max; }
+      }
+      var cv = document.createElement('canvas');
+      cv.width = w; cv.height = h;
+      cv.getContext('2d').drawImage(im, 0, 0, w, h);
+      dataUri = cv.toDataURL('image/jpeg', 0.75);
+      document.getElementById('picInfo').textContent =
+        "已處理：" + w + "×" + h + "，內嵌資料約 " + Math.round(dataUri.length/1024) + " KB";
+      document.getElementById('btnCopy').disabled = false;
+      document.getElementById('btnOpen').disabled = false;
+      log("照片已備妥");
+    };
+    im.onerror = function(){ log("照片讀取失敗"); };
+    im.src = ev.target.result;
+  };
+  reader.onerror = function(){ log("檔案讀取失敗"); };
+  reader.readAsDataURL(f);
+});
+
+function buildHtml(){
+  return '<div style="font-family:-apple-system,\'Segoe UI\',sans-serif;font-size:15px;line-height:1.6;color:#222">'
+    + '<img src="' + dataUri + '" width="360" style="max-width:100%;border-radius:6px"><br><br>'
+    + '<div>Peter Wang 您好，</div><br>'
+    + '<div>很榮幸今日在展位上與您交流。</div><br>'
+    + '<div>以下是我們今天談到的部分，提供您參考：</div><br>'
+    + '<div><b>【XEdgAI】</b></div>'
+    + '<div>專為邊緣部署打造的全端 AI 平台，只需幾個步驟即可部署至異質邊緣裝置。</div>'
+    + '<div><a href="' + U + '">' + U + '</a></div><br>'
+    + '<div>若需要任何進一步資訊，歡迎隨時與我聯繫。</div><br>'
+    + '<div>Hana Zhang<br>擷發科技股份有限公司 MICROIP INC.</div>'
+    + '</div>';
+}
+
+var PLAIN = "Peter Wang 您好，\n\n很榮幸今日在展位上與您交流。\n\n【XEdgAI】\n專為邊緣部署打造的全端 AI 平台。\n"
+  + U + "\n\nHana Zhang\n擷發科技股份有限公司 MICROIP INC.";
+
+document.getElementById('btnCopy').addEventListener('click', function(){
+  if(!dataUri){ log("還沒選照片"); return; }
+  if(!window.ClipboardItem || !navigator.clipboard || !navigator.clipboard.write){
+    log('<span class="bad">這台裝置不支援格式化複製</span>'); return;
+  }
+  try{
+    var item = new ClipboardItem({
+      "text/html": new Blob([buildHtml()], {type:"text/html"}),
+      "text/plain": new Blob([PLAIN], {type:"text/plain"})
+    });
+    navigator.clipboard.write([item]).then(function(){
+      log('<span class="ok">複製成功，接著按 ②</span>');
+    }).catch(function(err){
+      log('<span class="bad">複製失敗：' + (err && err.message ? err.message : err) + '</span>');
+    });
+  }catch(err){
+    log('<span class="bad">複製失敗：' + (err && err.message ? err.message : err) + '</span>');
+  }
+});
+
+document.getElementById('btnOpen').addEventListener('click', function(){
+  var url = "ms-outlook://compose?to=" + encodeURIComponent(TO)
+          + "&subject=" + encodeURIComponent(SUBJ);
+  log("開啟 Outlook（若沒反應請告訴我）");
+  window.location.href = url;
+});
+})();
+</script>
+</body>
+</html>
