@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>名片掃描寄信｜MICROIP</title>
+<style>
+  :root{
+    --navy:#0E1A2B; --navy-2:#16263C;
+    --gold:#F2A81D; --gold-dim:#B87F14;
+    --ink:#EAF0F7; --ink-dim:#8FA3BC; --ok:#3DBF87; --bad:#E4614C; --line:#26374F;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;padding:16px 14px 40px;background:var(--navy);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif;
+    font-size:16px;line-height:1.55}
+  .wrap{max-width:540px;margin:0 auto}
+  header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px}
+  h1{font-size:18px;margin:0;letter-spacing:.02em}
+  .linkbtn{background:none;border:0;color:var(--gold);font-size:13px;padding:4px;width:auto;
+    font-family:inherit;cursor:pointer;text-decoration:underline}
+  .card{border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px;background:var(--navy-2)}
+  .card h2{font-size:12px;margin:0 0 10px;color:var(--gold);letter-spacing:.08em;
+    text-transform:uppercase;font-weight:600}
+  .hint{font-size:12.5px;color:var(--ink-dim);margin:8px 0 0}
+  label.fld{display:block;font-size:12px;color:var(--ink-dim);margin:10px 0 4px}
+  input[type=text],input[type=email],input[type=tel],textarea,select{
+    width:100%;padding:11px 12px;border-radius:8px;border:1px solid var(--line);
+    background:#0B1523;color:var(--ink);font-size:16px;font-family:inherit}
+  textarea{min-height:60px;resize:vertical}
+  button{width:100%;padding:14px;border:0;border-radius:10px;font-size:16px;font-weight:600;
+    font-family:inherit;background:var(--gold);color:#1A1200;margin-top:10px;cursor:pointer}
+  button:disabled{background:#3A4B63;color:#7A8CA5}
+  button.ghost{background:transparent;border:1px solid var(--gold-dim);color:var(--gold)}
+  button.sm{padding:10px;font-size:14px}
+  button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #fff;outline-offset:2px}
+  input[type=file]{display:none}
+  .filebtn{display:block;width:100%;padding:14px;border-radius:10px;background:var(--gold);
+    color:#1A1200;font-weight:600;text-align:center;font-size:16px}
+  .filebtn.alt{background:transparent;border:1px solid var(--gold-dim);color:var(--gold)}
+  .thumb{display:none;width:100%;max-height:200px;object-fit:contain;border-radius:8px;
+    margin-top:10px;border:1px solid var(--line);background:#0B1523}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+  .chip{padding:6px 10px;border-radius:99px;border:1px solid var(--line);background:#0B1523;
+    color:var(--ink-dim);font-size:13px;cursor:pointer;width:auto;margin:0;font-weight:400}
+  .prod{display:flex;align-items:flex-start;gap:10px;padding:10px;border:1px solid var(--line);
+    border-radius:10px;margin-bottom:8px;background:#0B1523;cursor:pointer}
+  .prod.on{border-color:var(--gold);background:#1D1A0D}
+  .prod input{margin:3px 0 0;width:20px;height:20px;flex:0 0 auto;accent-color:var(--gold)}
+  .prod .nm{font-weight:600;font-size:15px}
+  .prod .ds{font-size:12px;color:var(--ink-dim);line-height:1.4}
+  .bar{height:6px;background:#0B1523;border-radius:99px;overflow:hidden;margin-top:10px;display:none}
+  .bar i{display:block;height:100%;width:0;background:var(--gold);transition:width .2s}
+  .status{font-size:12.5px;color:var(--ink-dim);margin-top:8px;min-height:18px}
+  .warn{background:#2A1410;border:1px solid #6B2E22;color:#F0C4BB;border-radius:8px;
+    padding:10px;font-size:13px;margin-top:8px;display:none}
+  .seg{display:flex;gap:6px;margin-top:6px}
+  .seg button{flex:1;margin:0;padding:9px;font-size:14px;background:#0B1523;color:var(--ink-dim);
+    border:1px solid var(--line)}
+  .seg button.on{background:var(--gold);color:#1A1200;border-color:var(--gold)}
+  .preview{background:#0B1523;border:1px solid var(--line);border-radius:10px;padding:12px;
+    font-size:13px;white-space:pre-wrap;color:var(--ink-dim);max-height:220px;overflow:auto}
+  .hide{display:none}
+  .ok{color:var(--ok)} .bad{color:var(--bad)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>名片掃描寄信</h1>
+  <button class="linkbtn" id="toSettings">我的名片設定</button>
+</header>
+
+<!-- ============ 設定頁 ============ -->
+<div id="settings" class="hide">
+  <div class="card">
+    <h2>我的資料（只需填一次）</h2>
+    <label class="fld" for="sName">姓名</label>
+    <input type="text" id="sName" placeholder="Hana Zhang">
+    <label class="fld" for="sTitle">職稱</label>
+    <input type="text" id="sTitle" placeholder="Marketing Specialist">
+    <label class="fld" for="sDept">部門</label>
+    <input type="text" id="sDept" placeholder="Public Relations & Integrated Marketing">
+    <label class="fld" for="sPhone">電話</label>
+    <input type="text" id="sPhone" placeholder="+886-968-922-180">
+    <label class="fld" for="sEmail">Email</label>
+    <input type="email" id="sEmail" placeholder="hana.zhang@micro-ip.com">
+    <label class="fld" for="sShow">目前展會名稱</label>
+    <input type="text" id="sShow" placeholder="electronica 2026">
+    <p class="hint">這些資料只存在這支手機上，不會上傳。換展會時記得回來改展會名稱。</p>
+    <button id="saveSettings">儲存</button>
+    <button class="ghost" id="backFromSettings">返回</button>
+  </div>
+</div>
+
+<!-- ============ 主流程 ============ -->
+<div id="main">
+
+  <div class="card">
+    <h2>1　拍名片</h2>
+    <label class="filebtn" for="cardPic">拍攝名片</label>
+    <input type="file" id="cardPic" accept="image/*" capture="environment">
+    <img id="cardThumb" class="thumb" alt="名片預覽">
+    <div class="bar" id="ocrBar"><i></i></div>
+    <div class="status" id="ocrStatus"></div>
+  </div>
+
+  <div class="card">
+    <h2>2　確認客戶資料</h2>
+
+    <label class="fld" for="fName">姓名</label>
+    <input type="text" id="fName" placeholder="客戶姓名">
+    <div class="chips" id="chipsName"></div>
+
+    <label class="fld" for="fCompany">公司</label>
+    <input type="text" id="fCompany" placeholder="公司名稱">
+    <div class="chips" id="chipsCompany"></div>
+
+    <label class="fld" for="fTitle">職稱</label>
+    <input type="text" id="fTitle" placeholder="職稱">
+    <div class="chips" id="chipsTitle"></div>
+
+    <label class="fld" for="fEmail">Email（必填）</label>
+    <input type="email" id="fEmail" placeholder="name@company.com">
+
+    <label class="fld" for="fPhone">電話</label>
+    <input type="tel" id="fPhone" placeholder="+49 ...">
+
+    <label class="fld" for="fCountry">國家</label>
+    <input type="text" id="fCountry" placeholder="Germany">
+
+    <label class="fld" for="fNote">內部備註（不會出現在信裡）</label>
+    <textarea id="fNote" placeholder="例：想找 DMS 方案，年底評估"></textarea>
+  </div>
+
+  <div class="card">
+    <h2>3　信件語言</h2>
+    <div class="seg">
+      <button class="on" data-lang="en">English</button>
+      <button data-lang="zh">中文</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>4　客戶有興趣的產品</h2>
+    <div id="prodList"></div>
+    <div class="warn" id="uavWarn">已勾選 UAV × Edge AI。這條產品線涉及敏感應用，請確認已了解對方身分與用途再寄出。</div>
+  </div>
+
+  <div class="card">
+    <h2>5　合照</h2>
+    <label class="filebtn alt" for="photoPic">選擇合照</label>
+    <input type="file" id="photoPic" accept="image/*">
+    <img id="photoThumb" class="thumb" alt="合照預覽">
+    <p class="hint">請確認照片拍到完整的臉，客戶才認得出你。拍照前務必先取得對方同意。</p>
+  </div>
+
+  <div class="card">
+    <h2>6　預覽</h2>
+    <div class="preview" id="preview">請先填寫上方欄位。</div>
+  </div>
+
+  <div class="card">
+    <h2>7　送出</h2>
+    <button id="btnCopy">① 複製客戶 Email</button>
+    <div class="status" id="copyStatus"></div>
+    <button id="btnShare" disabled>② 送到 Outlook</button>
+    <p class="hint">在 Outlook 的收件人欄長按 → 貼上 → 檢查一次 → 送出。</p>
+    <button class="ghost sm" id="btnReset">清空，換下一位客戶</button>
+  </div>
+
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js"></script>
+<script>
+(function(){
+"use strict";
+
+/* ---------- 設定：Google Sheet 端點，第三階段再填 ---------- */
+var SHEET_URL = "";
+
+/* ---------- 產品線文案 ---------- */
+var PRODUCTS = [
+  {
+    id:"ic", nm:"IC Design Service (CATS)",
+    ds:"ASIC / FPGA 設計服務",
+    url:"https://www.micro-ip.com/product-ic-design-service",
+    urlZh:"https://www.micro-ip.com/zh-TW/product-ic-design-service",
+    en:"Full-spectrum ASIC design services covering architecture design, optimization and performance enhancement. We focus on advanced design on mature process nodes, balancing power, performance and area. Services include ASIC/FPGA design, SW prototyping, SoC development board design and SoC bring-up.",
+    zh:"全方位 ASIC 設計服務，涵蓋架構設計、優化與效能提升。我們專注於成熟製程上的先進設計，在功耗、效能與面積之間取得平衡。服務範圍包含 ASIC／FPGA 設計、軟體原型設計、SoC 開發板設計與 SoC 啟動測試。"
+  },
+  {
+    id:"aivo", nm:"AIVO",
+    ds:"AI 視覺全方位解決平台（no-code）",
+    url:"https://www.micro-ip.com/product-ai-solution",
+    urlZh:"https://www.micro-ip.com/zh-TW/product-ai-solution",
+    en:"AIVO (AI Vision Operation) is an intelligent AI modeling and workflow design tool that combines a user-friendly interface with a no-code operating approach. Applications span SOP monitoring and inspection, smart cockpit DMS+OMS, environmental monitoring and rail carriage safety.",
+    zh:"AIVO（AI Vision Operation）是 AI 視覺全方位解決平台，也是一款智慧型 AI 建模與工作流程設計工具，結合使用者友善的介面與無需編碼（no-code）的操作方式。應用場景涵蓋 SOP 監控與檢測、智慧座艙 DMS+OMS、環境監測系統與軌道車廂安全監控。"
+  },
+  {
+    id:"xedgai", nm:"XEdgAI",
+    ds:"Express Edge AI 全端部署平台",
+    url:"https://www.micro-ip.com/ai-solution-xedgai",
+    urlZh:"https://www.micro-ip.com/zh-TW/ai-solution-xedgai",
+    en:"A full-stack AI platform built for edge deployment. Choose the capability, not the model \u2014 tell us the task and we match the best model for your device. Cross-platform hardware support with open API integration. Free trial: https://xedgai.micro-ip.com/",
+    zh:"專為邊緣部署打造的全端 AI 平台，只需幾個步驟即可部署至異質邊緣裝置。核心特色是「選擇功能，而非模型」——告訴平台你要做什麼，系統自動挑選最佳模型。支援跨硬體平台部署與開放式 API 整合。立即免費試用：https://xedgai.micro-ip.com/"
+  },
+  {
+    id:"auto", nm:"Automotive",
+    ds:"ADAS / DMS / OMS 車載方案",
+    url:"https://www.micro-ip.com/product-ai-solution",
+    urlZh:"https://www.micro-ip.com/zh-TW/product-ai-solution",
+    en:"MICROIP integrates sensor fusion, AI image recognition and edge computing for ADAS and DMS/OMS applications \u2014 lane departure, forward and rear collision warning, blind spot detection, fatigue and distraction monitoring, and driver identity verification. On-device processing delivers millisecond-level latency.",
+    zh:"MICROIP 智慧影像辨識與邊緣運算技術可融合外部感測器，為 ADAS、DMS 與 OMS 應用提供完整解決方案。涵蓋車道偏移、前後方碰撞預警、盲點偵測，以及疲勞、分神監控與駕駛身份識別。資料在嵌入式系統上直接處理，達到毫秒級低延遲。"
+  },
+  {
+    id:"uav", nm:"UAV \u00D7 Edge AI",
+    ds:"無人機垂直任務系統",
+    sensitive:true,
+    url:"https://www.arculussystem.com/uav/index.html",
+    urlZh:"https://www.arculussystem.com/zh_tw/uav/index.html",
+    en:"A vertical mission-system supplier \u2014 not just airframes. Integrated UAV platforms, Edge AI payloads powered by AIVO and XEdgAI, plus communication and ground control station integration.",
+    zh:"從平台到任務的垂直整合系統供應商。不只提供飛行平台，而是交付能完成任務的整合系統：UAV 機體、內建 AIVO 與 XEdgAI 的 Edge AI 智慧酬載、通訊與地面站整合。"
+  }
+];
+
+/* ---------- 小工具 ---------- */
+function $(id){ return document.getElementById(id); }
+function store(k,v){ try{ if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k,v); }catch(e){ return null; } }
+
+var lang = "en";
+var cardFile = null, photoFile = null;
+var ocrLines = [];
+
+/* ---------- 設定頁 ---------- */
+var SKEYS = ["sName","sTitle","sDept","sPhone","sEmail","sShow"];
+function loadSettings(){ SKEYS.forEach(function(k){ var v = store("mi_"+k); if(v) $(k).value = v; }); }
+function settingsOK(){ return !!(store("mi_sName") && store("mi_sEmail")); }
+
+$("toSettings").addEventListener("click", function(){
+  $("main").classList.add("hide"); $("settings").classList.remove("hide"); window.scrollTo(0,0);
+});
+$("backFromSettings").addEventListener("click", function(){
+  $("settings").classList.add("hide"); $("main").classList.remove("hide"); window.scrollTo(0,0);
+});
+$("saveSettings").addEventListener("click", function(){
+  SKEYS.forEach(function(k){ store("mi_"+k, $(k).value.trim()); });
+  $("settings").classList.add("hide"); $("main").classList.remove("hide");
+  render(); window.scrollTo(0,0);
+});
+
+/* ---------- 產品清單 ---------- */
+function buildProducts(){
+  var box = $("prodList");
+  PRODUCTS.forEach(function(p){
+    var row = document.createElement("label");
+    row.className = "prod";
+    row.innerHTML = '<input type="checkbox" value="'+p.id+'">'
+      + '<span><span class="nm">'+p.nm+'</span><br><span class="ds">'+p.ds+'</span></span>';
+    box.appendChild(row);
+    var cb = row.querySelector("input");
+    cb.addEventListener("change", function(){
+      row.classList.toggle("on", cb.checked);
+      if(p.sensitive) $("uavWarn").style.display = cb.checked ? "block" : "none";
+      render();
+    });
+  });
+}
+
+function selectedProducts(){
+  var ids = [];
+  Array.prototype.forEach.call(document.querySelectorAll("#prodList input:checked"), function(cb){ ids.push(cb.value); });
+  return PRODUCTS.filter(function(p){ return ids.indexOf(p.id) > -1; });
+}
+
+/* ---------- OCR ---------- */
+$("cardPic").addEventListener("change", function(e){
+  var f = e.target.files && e.target.files[0];
+  if(!f) return;
+  cardFile = f;
+  var img = $("cardThumb"); img.src = URL.createObjectURL(f); img.style.display = "block";
+  runOCR(f);
+});
+
+function runOCR(file){
+  var bar = $("ocrBar"), fill = bar.querySelector("i"), st = $("ocrStatus");
+  if(typeof Tesseract === "undefined"){
+    st.innerHTML = '<span class="bad">辨識元件載入失敗，請手動輸入欄位</span>';
+    return;
+  }
+  bar.style.display = "block"; fill.style.width = "0%";
+  st.textContent = "辨識中，可以先勾選產品線…";
+
+  Tesseract.recognize(file, "eng", {
+    logger: function(m){
+      if(m.status === "recognizing text"){ fill.style.width = Math.round(m.progress*100) + "%"; }
+    }
+  }).then(function(res){
+    bar.style.display = "none";
+    var text = (res && res.data && res.data.text) ? res.data.text : "";
+    ocrLines = text.split("\n").map(function(s){ return s.trim(); })
+                   .filter(function(s){ return s.length > 1 && s.length < 60; });
+
+    var email = (text.match(/[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}/) || [""])[0];
+    var phone = (text.match(/(\+?\d[\d\s\-().]{7,}\d)/) || [""])[0];
+
+    if(email && !$("fEmail").value) $("fEmail").value = email.replace(/[,;]$/,"");
+    if(phone && !$("fPhone").value) $("fPhone").value = phone.trim();
+
+    buildChips();
+    var found = [];
+    if(email) found.push("Email");
+    if(phone) found.push("電話");
+    st.innerHTML = found.length
+      ? '<span class="ok">已自動填入：' + found.join("、") + '。姓名／公司／職稱請點選下方文字或自行輸入。</span>'
+      : '辨識完成，但沒抓到 Email。請點選下方文字或手動輸入。';
+    render();
+  }).catch(function(err){
+    bar.style.display = "none";
+    st.innerHTML = '<span class="bad">辨識失敗：' + (err && err.message ? err.message : err) + '　請手動輸入</span>';
+  });
+}
+
+function buildChips(){
+  [["chipsName","fName"],["chipsCompany","fCompany"],["chipsTitle","fTitle"]].forEach(function(pair){
+    var box = $(pair[0]); box.innerHTML = "";
+    ocrLines.slice(0,14).forEach(function(line){
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "chip"; b.textContent = line;
+      b.addEventListener("click", function(){ $(pair[1]).value = line; render(); });
+      box.appendChild(b);
+    });
+  });
+}
+
+/* ---------- 合照 ---------- */
+$("photoPic").addEventListener("change", function(e){
+  var f = e.target.files && e.target.files[0];
+  if(!f) return;
+  photoFile = f;
+  var img = $("photoThumb"); img.src = URL.createObjectURL(f); img.style.display = "block";
+  render();
+});
+
+/* ---------- 語言 ---------- */
+Array.prototype.forEach.call(document.querySelectorAll(".seg button"), function(b){
+  b.addEventListener("click", function(){
+    Array.prototype.forEach.call(document.querySelectorAll(".seg button"), function(x){ x.classList.remove("on"); });
+    b.classList.add("on"); lang = b.getAttribute("data-lang"); render();
+  });
+});
+
+/* ---------- 組信 ---------- */
+function buildMail(){
+  var show = store("mi_sShow") || "the show";
+  var name = $("fName").value.trim();
+  var prods = selectedProducts();
+  var me = {
+    n: store("mi_sName") || "",
+    t: store("mi_sTitle") || "",
+    d: store("mi_sDept") || "",
+    p: store("mi_sPhone") || "",
+    e: store("mi_sEmail") || ""
+  };
+  var L = [];
+
+  if(lang === "en"){
+    L.push("MICROIP - Nice meeting you at " + show);
+    L.push("");
+    L.push("Hi " + (name || "there") + ",");
+    L.push("");
+    L.push("It was a pleasure meeting you today at our booth.");
+    L.push("");
+    if(prods.length){
+      L.push("As discussed, here is more information on the areas we covered:");
+      L.push("");
+      prods.forEach(function(p){
+        L.push("[" + p.nm + "]");
+        L.push(p.en);
+        L.push(p.url);
+        L.push("");
+      });
+    } else {
+      L.push("Here is more about what we do:");
+      L.push("https://www.micro-ip.com/");
+      L.push("");
+    }
+    L.push("Please feel free to reach out anytime.");
+    L.push("");
+    L.push("Best regards,");
+    L.push(me.n);
+    if(me.t) L.push(me.t);
+    if(me.d) L.push(me.d);
+    L.push("MICROIP INC.");
+    if(me.p) L.push("Phone: " + me.p);
+    if(me.e) L.push("Email: " + me.e);
+    L.push("Website: https://www.micro-ip.com/");
+    L.push("LinkedIn: https://www.linkedin.com/company/microip-inc/");
+  } else {
+    L.push("MICROIP - 很高興在 " + show + " 與您交流");
+    L.push("");
+    L.push((name || "您好") + " 您好，");
+    L.push("");
+    L.push("很榮幸今日在展位上與您交流。");
+    L.push("");
+    if(prods.length){
+      L.push("以下是我們今天談到的部分，提供您參考：");
+      L.push("");
+      prods.forEach(function(p){
+        L.push("【" + p.nm + "】");
+        L.push(p.zh);
+        L.push(p.urlZh);
+        L.push("");
+      });
+    } else {
+      L.push("關於我們的技術與服務，歡迎參考：");
+      L.push("https://www.micro-ip.com/zh-TW");
+      L.push("");
+    }
+    L.push("若需要任何進一步資訊，歡迎隨時與我聯繫。");
+    L.push("");
+    L.push(me.n);
+    if(me.t) L.push(me.t);
+    if(me.d) L.push(me.d);
+    L.push("擷發科技股份有限公司 MICROIP INC.");
+    if(me.p) L.push("電話：" + me.p);
+    if(me.e) L.push("Email：" + me.e);
+    L.push("官網：https://www.micro-ip.com/zh-TW");
+    L.push("LinkedIn：https://www.linkedin.com/company/microip-inc/");
+  }
+  return L.join("\n");
+}
+
+function render(){
+  var body = buildMail();
+  $("preview").textContent = body;
+  var ready = !!($("fEmail").value.trim() && photoFile && settingsOK());
+  $("btnShare").disabled = !ready;
+  if(!settingsOK()){
+    $("btnShare").textContent = "② 請先完成「我的名片設定」";
+  } else if(!photoFile){
+    $("btnShare").textContent = "② 請先選擇合照";
+  } else if(!$("fEmail").value.trim()){
+    $("btnShare").textContent = "② 請先填入客戶 Email";
+  } else {
+    $("btnShare").textContent = "② 送到 Outlook";
+  }
+}
+["fName","fCompany","fTitle","fEmail","fPhone","fCountry","fNote"].forEach(function(id){
+  $(id).addEventListener("input", render);
+});
+
+/* ---------- 複製 Email ---------- */
+$("btnCopy").addEventListener("click", function(){
+  var v = $("fEmail").value.trim();
+  if(!v){ $("copyStatus").innerHTML = '<span class="bad">還沒填客戶 Email</span>'; return; }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(v).then(function(){
+      $("copyStatus").innerHTML = '<span class="ok">已複製 ' + v + '，等一下在 Outlook 長按貼上</span>';
+    }).catch(function(){
+      $("copyStatus").innerHTML = '<span class="bad">複製失敗，請手動輸入收件人</span>';
+    });
+  } else {
+    $("copyStatus").innerHTML = '<span class="bad">此瀏覽器不支援複製，請手動輸入</span>';
+  }
+});
+
+/* ---------- 送出 ---------- */
+$("btnShare").addEventListener("click", function(){
+  if(!photoFile) return;
+  var payload = { files:[photoFile], text: buildMail() };
+  if(navigator.canShare && !navigator.canShare(payload)){
+    alert("這台裝置不支援分享照片加文字，請改用其他手機。");
+    return;
+  }
+  navigator.share(payload).then(function(){
+    saveLead();
+  }).catch(function(err){
+    if(!err || err.name !== "AbortError"){ alert("送出失敗：" + (err && err.message ? err.message : err)); }
+  });
+});
+
+/* ---------- 名單寫入（第三階段啟用） ---------- */
+function saveLead(){
+  if(!SHEET_URL) return;
+  var row = {
+    time: new Date().toISOString(),
+    show: store("mi_sShow") || "",
+    host: store("mi_sName") || "",
+    name: $("fName").value.trim(),
+    company: $("fCompany").value.trim(),
+    title: $("fTitle").value.trim(),
+    email: $("fEmail").value.trim(),
+    phone: $("fPhone").value.trim(),
+    country: $("fCountry").value.trim(),
+    products: selectedProducts().map(function(p){ return p.nm; }).join(" / "),
+    note: $("fNote").value.trim()
+  };
+  fetch(SHEET_URL, {
+    method:"POST", mode:"no-cors",
+    headers:{"Content-Type":"text/plain;charset=utf-8"},
+    body: JSON.stringify(row)
+  }).catch(function(){});
+}
+
+/* ---------- 清空 ---------- */
+$("btnReset").addEventListener("click", function(){
+  if(!confirm("清空這位客戶的資料？")) return;
+  ["fName","fCompany","fTitle","fEmail","fPhone","fCountry","fNote"].forEach(function(id){ $(id).value = ""; });
+  Array.prototype.forEach.call(document.querySelectorAll("#prodList input"), function(cb){
+    cb.checked = false; cb.parentNode.classList.remove("on");
+  });
+  $("uavWarn").style.display = "none";
+  cardFile = null; photoFile = null; ocrLines = [];
+  $("cardThumb").style.display = "none"; $("photoThumb").style.display = "none";
+  $("cardPic").value = ""; $("photoPic").value = "";
+  ["chipsName","chipsCompany","chipsTitle"].forEach(function(id){ $(id).innerHTML = ""; });
+  $("ocrStatus").textContent = ""; $("copyStatus").textContent = "";
+  render(); window.scrollTo(0,0);
+});
+
+/* ---------- 啟動 ---------- */
+loadSettings();
+buildProducts();
+render();
+if(!settingsOK()){
+  $("main").classList.add("hide");
+  $("settings").classList.remove("hide");
+}
+})();
+</script>
+</body>
+</html>
