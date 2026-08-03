@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>主旨測試｜MICROIP</title>
+<style>
+  :root{
+    --navy:#0E1A2B; --navy-2:#16263C; --gold:#F2A81D; --gold-dim:#B87F14;
+    --ink:#EAF0F7; --ink-dim:#8FA3BC; --ok:#3DBF87; --bad:#E4614C; --line:#26374F;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;padding:20px 16px 60px;background:var(--navy);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif;
+    font-size:16px;line-height:1.6}
+  .wrap{max-width:520px;margin:0 auto}
+  h1{font-size:20px;margin:0 0 4px}
+  .sub{color:var(--ink-dim);font-size:13px;margin:0 0 24px}
+  .step{border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px;background:var(--navy-2)}
+  .step h2{font-size:13px;margin:0 0 12px;color:var(--gold);letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+  .hint{font-size:13px;color:var(--ink-dim);margin:10px 0 0}
+  button{width:100%;padding:15px;border:0;border-radius:10px;font-size:16px;font-weight:600;
+    font-family:inherit;background:var(--gold);color:#1A1200;margin-top:8px;cursor:pointer}
+  button:disabled{background:#3A4B63;color:#7A8CA5}
+  button.ghost{background:transparent;border:1px solid var(--gold-dim);color:var(--gold)}
+  button:focus-visible{outline:3px solid #fff;outline-offset:2px}
+  input[type=file]{display:none}
+  label.filebtn{display:block;width:100%;padding:15px;border-radius:10px;background:var(--gold);
+    color:#1A1200;font-weight:600;text-align:center;font-size:16px}
+  #preview{display:none;width:100%;border-radius:10px;margin-top:12px;border:1px solid var(--line)}
+  .log{font-family:ui-monospace,Menlo,monospace;font-size:12px;line-height:1.5;background:#08111C;
+    border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:14px;white-space:pre-wrap;
+    word-break:break-word;color:var(--ink-dim);min-height:50px}
+  .expect{font-size:13px;color:var(--ink);background:#0B2A1E;border:1px solid #1E5C42;
+    border-radius:8px;padding:10px;margin-top:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>主旨測試</h1>
+  <p class="sub">上一輪已確認：分享方式會把照片嵌進內文。這一輪只驗一件事——主旨怎麼寫才會正確。</p>
+
+  <div class="step">
+    <h2>第一步　選一張照片</h2>
+    <label class="filebtn" for="pic">拍照或從相簿選擇</label>
+    <input type="file" id="pic" accept="image/*">
+    <img id="preview" alt="已選擇的照片預覽">
+  </div>
+
+  <div class="step">
+    <h2>版本 A　主旨獨立一行</h2>
+    <button class="btnShare" data-variant="A" disabled>用版本 A 送到 Outlook</button>
+    <div class="expect">要看的：主旨是不是「MICROIP – Nice meeting you at electronica 2026」？內文第一行會不會多出重複的主旨？</div>
+  </div>
+
+  <div class="step">
+    <h2>版本 B　問候語兼主旨</h2>
+    <button class="btnShare" data-variant="B" disabled>用版本 B 送到 Outlook</button>
+    <div class="expect">要看的：主旨是不是「MICROIP – Nice meeting you at electronica 2026」？內文讀起來順不順？</div>
+  </div>
+
+  <div class="step">
+    <h2>紀錄</h2>
+    <div class="log" id="log">尚未操作。</div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  var SUBJ = "MICROIP - Nice meeting you at electronica 2026";
+
+  var BODY_CORE = [
+    "It was a pleasure meeting you today at our booth.",
+    "",
+    "As discussed, here is more information on our Edge AI solutions:",
+    "https://www.micro-ip.com/",
+    "",
+    "Please feel free to reach out anytime.",
+    "",
+    "Best regards,",
+    "MICROIP INC."
+  ].join("\n");
+
+  // A: 主旨自成一行，空一行後才是問候語
+  var TEXT_A = SUBJ + "\n\n" + "Hi there," + "\n\n" + BODY_CORE;
+
+  // B: 第一行直接是主旨，兼作開頭，不另外加問候語
+  var TEXT_B = SUBJ + "\n\n" + BODY_CORE;
+
+  var picFile = null;
+  var logEl = document.getElementById('log');
+  var lines = [];
+  function log(m){
+    lines.push(new Date().toTimeString().slice(0,8) + "  " + m);
+    logEl.textContent = lines.join("\n");
+  }
+
+  document.getElementById('pic').addEventListener('change', function(e){
+    var f = e.target.files && e.target.files[0];
+    if(!f) return;
+    picFile = f;
+    var img = document.getElementById('preview');
+    img.src = URL.createObjectURL(f);
+    img.style.display = 'block';
+    Array.prototype.forEach.call(document.querySelectorAll('.btnShare'), function(b){ b.disabled = false; });
+    log("已選擇照片：" + f.name);
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll('.btnShare'), function(btn){
+    btn.addEventListener('click', function(){
+      if(!picFile){ log("還沒選照片"); return; }
+      var v = btn.getAttribute('data-variant');
+      var payload = { files:[picFile], text: (v === 'A' ? TEXT_A : TEXT_B) };
+      if(navigator.canShare && !navigator.canShare(payload)){
+        log("版本 " + v + " 失敗：裝置不支援");
+        return;
+      }
+      navigator.share(payload).then(function(){
+        log("版本 " + v + " 已送出，請檢查 Outlook 的主旨與內文");
+      }).catch(function(err){
+        if(err && err.name === 'AbortError'){ log("版本 " + v + " 你取消了"); }
+        else { log("版本 " + v + " 失敗：" + (err && err.message ? err.message : err)); }
+      });
+    });
+  });
+})();
+</script>
+</body>
+</html>
